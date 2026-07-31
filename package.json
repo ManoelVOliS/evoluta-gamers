@@ -1,0 +1,24 @@
+{
+  "name": "evoluta-gamers",
+  "version": "0.1.0",
+  "private": true,
+  "packageManager": "pnpm@10.20.0",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "dev": "pnpm --parallel --filter \"./apps/*\" --filter \"./packages/*\" dev",
+    "dev:web": "pnpm --filter @evoluta-gamers/web dev",
+    "dev:api": "pnpm --filter @evoluta-gamers/api dev",
+    "build": "pnpm --filter @evoluta-gamers/shared build && pnpm --filter \"./apps/*\" build",
+    "typecheck": "pnpm -r typecheck",
+    "lint": "pnpm -r lint",
+    "test": "pnpm -r test",
+    "format": "prettier --write .",
+    "up": "docker compose up -d --build",
+    "down": "docker compose down"
+  },
+  "devDependencies": {
+    "prettier": "^3.8.3"
+  }
+}
