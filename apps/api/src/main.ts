@@ -9,6 +9,11 @@ async function bootstrap() {
   const app = await NestFactory.create(AppModule)
   const config = app.get(ConfigService)
 
+  // `legendary-cli.ts` é um módulo simples (não gerenciado pelo Nest) e lê
+  // `process.env.LEGENDARY_BIN` direto — o `ConfigService` valida a variável
+  // mas nunca escreve de volta no `process.env` global, então replicamos aqui.
+  process.env.LEGENDARY_BIN = config.getOrThrow<string>('LEGENDARY_BIN')
+
   app.setGlobalPrefix('api')
   app.use(helmet())
   app.use(cookieParser())

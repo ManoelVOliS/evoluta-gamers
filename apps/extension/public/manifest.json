@@ -1,0 +1,25 @@
+{
+  "manifest_version": 3,
+  "name": "Evoluta Gamers — Vínculo Epic",
+  "version": "0.1.0",
+  "description": "Captura o login da Epic Games e vincula sua biblioteca automaticamente no Evoluta Gamers.",
+  "action": {
+    "default_popup": "popup.html"
+  },
+  "background": {
+    "service_worker": "background.js",
+    "type": "module"
+  },
+  "content_scripts": [
+    {
+      "matches": ["https://www.epicgames.com/id/api/redirect*"],
+      "js": ["content-script.js"],
+      "run_at": "document_idle"
+    }
+  ],
+  "permissions": ["storage", "tabs"],
+  "host_permissions": ["http://localhost:5273/*"],
+  "externally_connectable": {
+    "matches": ["http://localhost:5273/*"]
+  }
+}

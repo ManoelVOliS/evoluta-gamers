@@ -7,14 +7,20 @@ import { ConfigService } from '@nestjs/config'
 import { InjectModel } from '@nestjs/mongoose'
 import { Model, Types } from 'mongoose'
 import { ErrorCode, type EpicLinkResult } from '@evoluta-gamers/shared'
+import { EpicLinkTokenService } from './epic-link-token.service'
 import { decryptEpicSession, encryptEpicSession } from './epic-token-crypto'
-import { EpicSessionError, validateEpicSession } from './legendary-cli'
+import {
+  authenticateWithCode,
+  EpicSessionError,
+  validateEpicSession,
+} from './legendary-cli'
 import { EpicSession, type EpicSessionDocument } from './schemas/epic-session.schema'
 
 @Injectable()
 export class EpicLinkService {
   constructor(
     private readonly config: ConfigService,
+    private readonly linkTokens: EpicLinkTokenService,
     @InjectModel(EpicSession.name)
     private readonly sessions: Model<EpicSessionDocument>,
   ) {}
@@ -57,6 +63,29 @@ export class EpicLinkService {
       .exec()
 
     return identity
+  }
+
+  /**
+   * Vínculo automático via extensão: troca o token de uso único pelo
+   * `userId` que o gerou, gera a sessão a partir do `authorizationCode` da
+   * Epic e reaproveita `link()` sem duplicar a validação/criptografia/upsert.
+   */
+  async linkViaCode(linkToken: string, code: string): Promise<EpicLinkResult> {
+    const userId = await this.linkTokens.consume(linkToken)
+
+    let sessionJson: string
+    try {
+      sessionJson = await authenticateWithCode(code)
+    } catch (error) {
+      if (error instanceof EpicSessionError) {
+        throw new UnprocessableEntityException({
+          code: ErrorCode.EPIC_SESSION_INVALID,
+        })
+      }
+      throw error
+    }
+
+    return this.link(userId, sessionJson)
   }
 
   async unlink(userId: string): Promise<void> {

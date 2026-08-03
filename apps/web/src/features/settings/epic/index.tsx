@@ -5,7 +5,7 @@ export function SettingsEpic() {
   return (
     <ContentSection
       title='Conta Epic Games'
-      desc='Sem API oficial da Epic — usamos a sessão gerada pela legendary (open source) para trazer sua biblioteca.'
+      desc='Vincule automaticamente com nossa extensão (se instalada) — ou cole a sessão manualmente, gerada pela legendary (open source), sem API oficial da Epic.'
     >
       <EpicCard />
     </ContentSection>

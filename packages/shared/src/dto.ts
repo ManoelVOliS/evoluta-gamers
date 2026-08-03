@@ -181,6 +181,19 @@ export const EpicStatus = z.object({
 })
 export type EpicStatus = z.infer<typeof EpicStatus>
 
+/** Token de uso único que autoriza a troca de um authorizationCode da Epic. */
+export const MintEpicLinkTokenResult = z.object({
+  token: z.string(),
+  expiresAt: z.iso.datetime(),
+})
+export type MintEpicLinkTokenResult = z.infer<typeof MintEpicLinkTokenResult>
+
+export const ExchangeEpicLinkInput = z.object({
+  linkToken: z.string().min(10),
+  code: z.string().min(1),
+})
+export type ExchangeEpicLinkInput = z.infer<typeof ExchangeEpicLinkInput>
+
 /* -------------------------------------------------------------- catálogo --- */
 
 /** Item do catálogo do usuário: jogo global + os dados que só são dele. */

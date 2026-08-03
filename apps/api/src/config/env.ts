@@ -40,6 +40,14 @@ export const envSchema = z.object({
     .regex(/^[0-9a-f]{64}$/i, 'precisa ter exatamente 64 caracteres hex (32 bytes)')
     .optional(),
 
+  /**
+   * Caminho do binário `legendary`. Em produção (Docker) já vem como variável
+   * de ambiente real do container; em dev local pode não estar no PATH — daí
+   * o default aqui e a necessidade de declarar no schema (sem isso, o
+   * `ConfigService` nunca enxerga essa variável, mesmo com ela no `.env`).
+   */
+  LEGENDARY_BIN: z.string().min(1).default('legendary'),
+
   /** Bootstrap do primeiro admin, aplicado só se a coleção `users` estiver vazia. */
   ADMIN_EMAIL: z.email().optional(),
   ADMIN_PASSWORD: z.string().min(8).optional(),

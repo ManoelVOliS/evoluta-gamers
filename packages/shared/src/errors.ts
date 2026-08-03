@@ -24,6 +24,8 @@ export const ErrorCode = {
   EPIC_NOT_LINKED: 'EPIC_NOT_LINKED',
   /** Essa conta Epic já está vinculada a outro usuário da rede. */
   EPIC_ALREADY_LINKED: 'EPIC_ALREADY_LINKED',
+  /** Token de vínculo da extensão inexistente, expirado ou já usado. */
+  EPIC_LINK_TOKEN_INVALID: 'EPIC_LINK_TOKEN_INVALID',
 } as const
 
 export type ErrorCode = (typeof ErrorCode)[keyof typeof ErrorCode]
@@ -48,4 +50,6 @@ export const ERROR_MESSAGES: Record<ErrorCode, string> = {
   EPIC_NOT_LINKED: 'Vincule sua conta Epic antes de sincronizar.',
   EPIC_ALREADY_LINKED:
     'Esta conta Epic já está vinculada a outro usuário da rede.',
+  EPIC_LINK_TOKEN_INVALID:
+    'Esse link expirou ou já foi usado. Volte em Configurações e clique em "Vincular" de novo.',
 }

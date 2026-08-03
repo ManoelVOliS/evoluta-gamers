@@ -1,5 +1,5 @@
 import { execFile } from 'node:child_process'
-import { mkdtemp, rm, writeFile } from 'node:fs/promises'
+import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 
@@ -21,8 +21,6 @@ export type LegendaryGame = {
   title: string
 }
 
-const BIN = process.env.LEGENDARY_BIN ?? 'legendary'
-
 async function withTempSession<T>(
   sessionJson: string,
   fn: (configDir: string) => Promise<T>,
@@ -41,9 +39,14 @@ async function withTempSession<T>(
 }
 
 function run(args: string[], configDir: string): Promise<string> {
+  // Lida aqui dentro (não no topo do módulo): no boot, o `ConfigModule` só
+  // carrega o `.env` pro `process.env` depois que este arquivo já foi
+  // importado — ler no topo sempre pegava `undefined` e caía no fallback
+  // `'legendary'` bare, que não existe no PATH.
+  const bin = process.env.LEGENDARY_BIN ?? 'legendary'
   return new Promise((resolve, reject) => {
     execFile(
-      BIN,
+      bin,
       ['--yes', ...args],
       {
         env: { ...process.env, LEGENDARY_CONFIG_PATH: configDir },
@@ -98,6 +101,25 @@ export async function validateEpicSession(
 
     return { epicAccountId: raw.account_id, displayName: parsed.account }
   })
+}
+
+/**
+ * Roda `legendary auth --code <code>` num diretório temporário isolado e lê
+ * de volta o `user.json` que ela mesma acabou de gerar. Diferente das outras
+ * funções deste arquivo, que recebem uma sessão pronta, esta é a única que a
+ * produz — usada pela troca automática via extensão, sem o usuário colar nada.
+ */
+export async function authenticateWithCode(code: string): Promise<string> {
+  const dir = await mkdtemp(join(tmpdir(), 'epic-session-'))
+  try {
+    await run(['auth', '--code', code], dir)
+    return await readFile(join(dir, 'user.json'), 'utf8')
+  } catch (error) {
+    if (error instanceof EpicSessionError) throw error
+    throw new EpicSessionError((error as Error).message)
+  } finally {
+    await rm(dir, { recursive: true, force: true }).catch(() => undefined)
+  }
 }
 
 export async function fetchEpicLibrary(

@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Evoluta Gamers — Vínculo Epic</title>
+    <style>
+      body {
+        font-family: system-ui, sans-serif;
+        width: 280px;
+        padding: 12px;
+      }
+      label {
+        display: block;
+        font-size: 12px;
+        margin-top: 8px;
+      }
+      input {
+        width: 100%;
+        box-sizing: border-box;
+        padding: 4px;
+        margin-top: 2px;
+      }
+      button {
+        width: 100%;
+        margin-top: 12px;
+        padding: 6px;
+      }
+      #status {
+        font-size: 12px;
+        margin-top: 8px;
+      }
+    </style>
+  </head>
+  <body>
+    <form id="link-form">
+      <label>
+        Origem do app
+        <input id="api-origin" type="text" value="http://localhost:5273" />
+      </label>
+      <label>
+        Token de vínculo
+        <input id="link-token" type="text" placeholder="colado de /epic/link-token" />
+      </label>
+      <button type="submit">Iniciar vínculo</button>
+    </form>
+    <p id="status"></p>
+    <script type="module" src="./src/popup.ts"></script>
+  </body>
+</html>

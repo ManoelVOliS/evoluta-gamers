@@ -1,13 +1,14 @@
 import { Body, Controller, Delete, Get, HttpCode, Post } from '@nestjs/common'
 import { InjectModel } from '@nestjs/mongoose'
 import { Model, Types } from 'mongoose'
-import { LinkEpicInput } from '@evoluta-gamers/shared'
+import { ExchangeEpicLinkInput, LinkEpicInput } from '@evoluta-gamers/shared'
 import type { EpicStatus } from '@evoluta-gamers/shared'
-import { CurrentUser } from '../auth/decorators'
+import { CurrentUser, Public } from '../auth/decorators'
 import type { AuthenticatedUser } from '../auth/jwt.strategy'
 import { ZodBody } from '../common/zod-validation.pipe'
 import { CatalogService } from '../catalog/catalog.service'
 import { SyncRun, type SyncRunDocument } from '../steam/schemas/sync-run.schema'
+import { EpicLinkTokenService } from './epic-link-token.service'
 import { EpicLinkService } from './epic-link.service'
 import { EpicSyncService } from './epic-sync.service'
 
@@ -15,6 +16,7 @@ import { EpicSyncService } from './epic-sync.service'
 export class EpicController {
   constructor(
     private readonly link: EpicLinkService,
+    private readonly linkTokens: EpicLinkTokenService,
     private readonly sync: EpicSyncService,
     private readonly catalog: CatalogService,
     @InjectModel(SyncRun.name)
@@ -27,6 +29,24 @@ export class EpicController {
     @Body(new ZodBody(LinkEpicInput)) body: LinkEpicInput,
   ) {
     return this.link.link(user.id, body.sessionJson)
+  }
+
+  /** Gera o token de uso único que a extensão vai trocar pelo vínculo. */
+  @Post('link-token')
+  async mintLinkToken(@CurrentUser() user: AuthenticatedUser) {
+    return this.linkTokens.mint(user.id)
+  }
+
+  /**
+   * Chamado pela extensão, sem sessão de usuário — a segurança vem do token
+   * de uso único, não do JWT.
+   */
+  @Public()
+  @Post('link/exchange')
+  async exchangeLink(
+    @Body(new ZodBody(ExchangeEpicLinkInput)) body: ExchangeEpicLinkInput,
+  ) {
+    return this.link.linkViaCode(body.linkToken, body.code)
   }
 
   @Delete('link')

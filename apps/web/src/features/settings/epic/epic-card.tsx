@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
@@ -13,7 +13,13 @@ import {
   Unlink,
 } from 'lucide-react'
 import { toast } from 'sonner'
-import type { EpicStatus, SyncResult } from '@evoluta-gamers/shared'
+import {
+  ERROR_MESSAGES,
+  type EpicStatus,
+  type ErrorCode,
+  type MintEpicLinkTokenResult,
+  type SyncResult,
+} from '@evoluta-gamers/shared'
 import { api, errorCodeOf, errorMessageOf } from '@/lib/api-client'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
@@ -25,14 +31,80 @@ import {
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 
+const EXTENSION_ID = import.meta.env.VITE_EPIC_EXTENSION_ID as
+  | string
+  | undefined
+
 export function EpicCard() {
   const queryClient = useQueryClient()
   const [sessionJson, setSessionJson] = useState('')
+  const [extensionAvailable, setExtensionAvailable] = useState(false)
   const [instructionsOpen, setInstructionsOpen] = useState(true)
 
   const { data: status, isLoading } = useQuery({
     queryKey: ['epic', 'status'],
     queryFn: async () => (await api.get<EpicStatus>('/epic/status')).data,
+  })
+
+  // Ping único: se a extensão não existir, `chrome.runtime.lastError` já
+  // resolve o callback sem lançar — não precisa de timeout/watchdog.
+  useEffect(() => {
+    if (!EXTENSION_ID || typeof chrome === 'undefined' || !chrome.runtime?.sendMessage) {
+      return
+    }
+    try {
+      chrome.runtime.sendMessage(EXTENSION_ID, { type: 'ping' }, (response) => {
+        if (chrome.runtime.lastError) return
+        if (response?.ok) setExtensionAvailable(true)
+      })
+    } catch {
+      // Navegador sem `chrome.runtime` (Firefox/Safari) — fica no fallback manual.
+    }
+  }, [])
+
+  useEffect(() => {
+    if (extensionAvailable) setInstructionsOpen(false)
+  }, [extensionAvailable])
+
+  // Retorno da extensão (ver `background.ts`, Fase 2): a aba da Epic volta pra
+  // cá com `?epicLink=ok|error&code=...` depois da troca no backend. Lido via
+  // `URLSearchParams` puro (não pelo router) porque é um retorno de redirect
+  // externo, não uma navegação in-app.
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search)
+    const epicLink = params.get('epicLink')
+    if (!epicLink) return
+
+    if (epicLink === 'ok') {
+      toast.success('Conta Epic vinculada!')
+      queryClient.invalidateQueries({ queryKey: ['epic', 'status'] })
+    } else {
+      const code = params.get('code')
+      const message =
+        (code && ERROR_MESSAGES[code as ErrorCode]) ??
+        'Não consegui vincular pela extensão. Tenta de novo ou usa o modo manual abaixo.'
+      toast.error(message)
+    }
+
+    const url = new URL(window.location.href)
+    url.search = ''
+    window.history.replaceState({}, '', url)
+  }, [queryClient])
+
+  const mintLinkToken = useMutation({
+    mutationFn: async () =>
+      (await api.post<MintEpicLinkTokenResult>('/epic/link-token')).data,
+    onSuccess: (data) => {
+      chrome.runtime.sendMessage(EXTENSION_ID!, {
+        type: 'start-link',
+        linkToken: data.token,
+        apiOrigin: window.location.origin,
+      })
+      toast.info('Continue o login na aba da Epic que abriu.')
+    },
+    onError: () => {
+      toast.error('Não consegui iniciar o vínculo. Tenta de novo.')
+    },
   })
 
   const link = useMutation({
@@ -84,6 +156,25 @@ export function EpicCard() {
   if (!status?.linked) {
     return (
       <div className='space-y-4'>
+        {extensionAvailable && (
+          <div className='space-y-2'>
+            <Button
+              onClick={() => mintLinkToken.mutate()}
+              disabled={mintLinkToken.isPending}
+            >
+              {mintLinkToken.isPending ? (
+                <Loader2 className='animate-spin' />
+              ) : (
+                <Link2 className='size-4' />
+              )}
+              Vincular via extensão
+            </Button>
+            <p className='text-muted-foreground text-xs'>
+              ou, se preferir, use o modo manual abaixo:
+            </p>
+          </div>
+        )}
+
         <p className='text-muted-foreground text-sm'>
           A Epic não tem uma forma automática de conectar como a Steam. Usamos
           a <code className='text-xs'>legendary</code> (ferramenta open source,
