@@ -13,6 +13,9 @@
     "outDir": "./dist",
     "rootDir": "./src",
     "incremental": true,
+    // Dentro do dist de propósito: o `deleteOutDir` do nest-cli apaga o dist, e um
+    // tsbuildinfo sobrevivente faria o tsc achar que já emitiu arquivos que sumiram.
+    "tsBuildInfoFile": "./dist/.tsbuildinfo",
     "skipLibCheck": true,
     "strict": true,
     "strictNullChecks": true,
@@ -21,10 +24,15 @@
     "forceConsistentCasingInFileNames": true,
     "noFallthroughCasesInSwitch": true,
     "noUncheckedIndexedAccess": true,
+    // Exigido pelo ts-jest quando o module é node16/18.
+    "isolatedModules": true,
+    "types": ["node", "jest"],
     "paths": {
       "@/*": ["./src/*"]
     }
   },
   "include": ["src"],
-  "exclude": ["node_modules", "dist"]
+  // Os specs são compilados pelo ts-jest em memória; no build de produção
+  // ficariam de fora do dist de qualquer forma, então excluímos explicitamente.
+  "exclude": ["node_modules", "dist", "**/*.spec.ts"]
 }

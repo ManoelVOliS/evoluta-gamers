@@ -1,4 +1,4 @@
-import { Logger, ValidationPipe } from '@nestjs/common'
+import { Logger } from '@nestjs/common'
 import { ConfigService } from '@nestjs/config'
 import { NestFactory } from '@nestjs/core'
 import cookieParser from 'cookie-parser'
@@ -12,7 +12,7 @@ async function bootstrap() {
   app.setGlobalPrefix('api')
   app.use(helmet())
   app.use(cookieParser())
-  app.useGlobalPipes(new ValidationPipe({ whitelist: true, transform: true }))
+  // Validação é por rota, com `ZodBody` — ver src/common/zod-validation.pipe.ts.
 
   // Refresh token vai em cookie httpOnly, então o CORS precisa de credentials.
   app.enableCors({

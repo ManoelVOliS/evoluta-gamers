@@ -16,6 +16,14 @@ export const ErrorCode = {
   ACCOUNT_SUSPENDED: 'ACCOUNT_SUSPENDED',
   /** Esse steamID64 já está vinculado a outro usuário da rede. */
   STEAM_ALREADY_LINKED: 'STEAM_ALREADY_LINKED',
+  /** Tentou sincronizar sem ter vinculado a Steam antes. */
+  STEAM_NOT_LINKED: 'STEAM_NOT_LINKED',
+  /** O JSON colado não é uma sessão válida da `legendary`, ou expirou. */
+  EPIC_SESSION_INVALID: 'EPIC_SESSION_INVALID',
+  /** Tentou sincronizar sem ter vinculado a Epic antes. */
+  EPIC_NOT_LINKED: 'EPIC_NOT_LINKED',
+  /** Essa conta Epic já está vinculada a outro usuário da rede. */
+  EPIC_ALREADY_LINKED: 'EPIC_ALREADY_LINKED',
 } as const
 
 export type ErrorCode = (typeof ErrorCode)[keyof typeof ErrorCode]
@@ -34,4 +42,10 @@ export const ERROR_MESSAGES: Record<ErrorCode, string> = {
   ACCOUNT_SUSPENDED: 'Esta conta está suspensa.',
   STEAM_ALREADY_LINKED:
     'Esta conta Steam já está vinculada a outro usuário da rede.',
+  STEAM_NOT_LINKED: 'Vincule sua conta Steam antes de sincronizar.',
+  EPIC_SESSION_INVALID:
+    'Essa sessão da Epic não é válida ou expirou. Rode "legendary auth" de novo e cole o novo conteúdo de user.json.',
+  EPIC_NOT_LINKED: 'Vincule sua conta Epic antes de sincronizar.',
+  EPIC_ALREADY_LINKED:
+    'Esta conta Epic já está vinculada a outro usuário da rede.',
 }

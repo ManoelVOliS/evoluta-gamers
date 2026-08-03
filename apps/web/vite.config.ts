@@ -18,11 +18,23 @@ export default defineConfig({
   ],
   resolve: {
     alias: {
-      '@': path.resolve(__dirname, './src'),
+      '@': path.resolve(import.meta.dirname, './src'),
     },
   },
+  optimizeDeps: {
+    // @evoluta-gamers/shared é workspace (symlink), então o Vite não o
+    // pré-empacota por padrão e serve o dist CJS bruto via /@fs/. O
+    // `export * from './domain'` compilado vira um loop de atribuição
+    // (`__exportStar`), que a análise estática de ESM do navegador não
+    // consegue enxergar como exports nomeados — "does not provide an export
+    // named X". Forçar o pré-bundle faz o esbuild resolver isso executando o
+    // CJS de verdade, em vez de só analisar o texto.
+    include: ['@evoluta-gamers/shared'],
+  },
   server: {
-    port: 5173,
+    // 5173 é do eVOLUTA Hub. Porta própria pra rodar os dois lado a lado.
+    port: 5273,
+    strictPort: true,
     proxy: {
       '/api': {
         target: process.env.VITE_API_URL ?? 'http://localhost:3333',

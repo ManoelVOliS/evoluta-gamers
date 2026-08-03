@@ -1,3 +1,4 @@
+import { useAuthStore } from '@/stores/auth-store'
 import { useLayout } from '@/context/layout-provider'
 import {
   Sidebar,
@@ -7,13 +8,15 @@ import {
   SidebarRail,
 } from '@/components/ui/sidebar'
 // import { AppTitle } from './app-title'
-import { sidebarData } from './data/sidebar-data'
+import { sidebarFor, type SidebarArea } from './data/sidebar-data'
 import { NavGroup } from './nav-group'
 import { NavUser } from './nav-user'
 import { TeamSwitcher } from './team-switcher'
 
-export function AppSidebar() {
+export function AppSidebar({ area = 'app' }: { area?: SidebarArea }) {
   const { collapsible, variant } = useLayout()
+  const { user } = useAuthStore((s) => s.auth)
+  const sidebarData = sidebarFor(area)
   return (
     <Sidebar collapsible={collapsible} variant={variant}>
       <SidebarHeader>
@@ -29,7 +32,13 @@ export function AppSidebar() {
         ))}
       </SidebarContent>
       <SidebarFooter>
-        <NavUser user={sidebarData.user} />
+        <NavUser
+          user={{
+            name: user?.name ?? '',
+            email: user?.email ?? '',
+            avatar: user?.avatarUrl ?? '',
+          }}
+        />
       </SidebarFooter>
       <SidebarRail />
     </Sidebar>

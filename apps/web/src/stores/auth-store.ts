@@ -1,52 +1,48 @@
 import { create } from 'zustand'
-import { getCookie, setCookie, removeCookie } from '@/lib/cookies'
+import type { PublicUser } from '@evoluta-gamers/shared'
+import { getCookie, removeCookie, setCookie } from '@/lib/cookies'
 
-const ACCESS_TOKEN = 'thisisjustarandomstring'
+const ACCESS_TOKEN_COOKIE = 'eg_access'
 
-interface AuthUser {
-  accountNo: string
-  email: string
-  role: string[]
-  exp: number
-}
-
-interface AuthState {
+type AuthState = {
   auth: {
-    user: AuthUser | null
-    setUser: (user: AuthUser | null) => void
+    user: PublicUser | null
     accessToken: string
+    setUser: (user: PublicUser | null) => void
     setAccessToken: (accessToken: string) => void
-    resetAccessToken: () => void
+    setSession: (user: PublicUser, accessToken: string) => void
     reset: () => void
   }
 }
 
+/**
+ * O access token dura 15 minutos e fica em cookie legível só para permitir
+ * recarregar a página sem perder a sessão. O que realmente sustenta a sessão é
+ * o refresh token, que vive num cookie httpOnly e o JavaScript não alcança.
+ */
 export const useAuthStore = create<AuthState>()((set) => {
-  const cookieState = getCookie(ACCESS_TOKEN)
-  const initToken = cookieState ? JSON.parse(cookieState) : ''
+  const stored = getCookie(ACCESS_TOKEN_COOKIE)
+
   return {
     auth: {
       user: null,
+      accessToken: stored ?? '',
       setUser: (user) =>
-        set((state) => ({ ...state, auth: { ...state.auth, user } })),
-      accessToken: initToken,
+        set((state) => ({ auth: { ...state.auth, user } })),
       setAccessToken: (accessToken) =>
         set((state) => {
-          setCookie(ACCESS_TOKEN, JSON.stringify(accessToken))
-          return { ...state, auth: { ...state.auth, accessToken } }
+          setCookie(ACCESS_TOKEN_COOKIE, accessToken)
+          return { auth: { ...state.auth, accessToken } }
         }),
-      resetAccessToken: () =>
+      setSession: (user, accessToken) =>
         set((state) => {
-          removeCookie(ACCESS_TOKEN)
-          return { ...state, auth: { ...state.auth, accessToken: '' } }
+          setCookie(ACCESS_TOKEN_COOKIE, accessToken)
+          return { auth: { ...state.auth, user, accessToken } }
         }),
       reset: () =>
         set((state) => {
-          removeCookie(ACCESS_TOKEN)
-          return {
-            ...state,
-            auth: { ...state.auth, user: null, accessToken: '' },
-          }
+          removeCookie(ACCESS_TOKEN_COOKIE)
+          return { auth: { ...state.auth, user: null, accessToken: '' } }
         }),
     },
   }

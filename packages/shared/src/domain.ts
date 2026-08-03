@@ -71,12 +71,36 @@ export const GAME_STATUS_LABELS: Record<GameStatus, string> = {
 }
 
 /** De onde veio a entrada na biblioteca do usuário — PRD §5.2 (family sharing manual). */
-export const GameSource = z.enum(['steam', 'manual_family_sharing'])
+export const GameSource = z.enum([
+  'steam',
+  'epic',
+  'manual_family_sharing',
+  'manual_epic',
+])
 export type GameSource = z.infer<typeof GameSource>
+
+/**
+ * Origens que só existem por digitação manual — nunca escritas por um
+ * processo automático. Restringe o que `POST /catalog/manual` aceita: um
+ * usuário não pode criar uma entrada com `source: 'steam'` à mão.
+ */
+export const ManualGameSource = z.enum(['manual_family_sharing', 'manual_epic'])
+export type ManualGameSource = z.infer<typeof ManualGameSource>
+
+export const GAME_SOURCE_LABELS: Record<GameSource, string> = {
+  steam: 'Steam',
+  epic: 'Epic Games',
+  manual_family_sharing: 'Family Sharing',
+  manual_epic: 'Epic Games (manual)',
+}
 
 /** Tipo de grupo — PRD §5.5. */
 export const GroupType = z.enum(['family', 'friends', 'other'])
 export type GroupType = z.infer<typeof GroupType>
+
+/** Resultado de uma sincronização com a Steam — PRD §5.2. */
+export const SyncStatus = z.enum(['ok', 'private', 'not_found', 'error'])
+export type SyncStatus = z.infer<typeof SyncStatus>
 
 /** Evento de feed — PRD §5.5. */
 export const ActivityType = z.enum([

@@ -2,10 +2,11 @@ import { useState } from 'react'
 import { z } from 'zod'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
+import { useNavigate } from '@tanstack/react-router'
 import { Loader2, UserPlus } from 'lucide-react'
 import { toast } from 'sonner'
-import { IconFacebook, IconGithub } from '@/assets/brand-icons'
-import { sleep, cn } from '@/lib/utils'
+import { api, errorMessageOf } from '@/lib/api-client'
+import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import {
   Form,
@@ -20,47 +21,82 @@ import { PasswordInput } from '@/components/password-input'
 
 const formSchema = z
   .object({
+    name: z.string().min(2, 'Informe seu nome.').max(60),
     email: z.email({
-      error: (iss) =>
-        iss.input === '' ? 'Please enter your email.' : undefined,
+      error: (iss) => (iss.input === '' ? 'Informe seu e-mail.' : undefined),
     }),
     password: z
       .string()
-      .min(1, 'Please enter your password.')
-      .min(7, 'Password must be at least 7 characters long.'),
-    confirmPassword: z.string().min(1, 'Please confirm your password.'),
+      .min(1, 'Informe uma senha.')
+      .min(8, 'A senha precisa de pelo menos 8 caracteres.'),
+    confirmPassword: z.string().min(1, 'Confirme sua senha.'),
   })
   .refine((data) => data.password === data.confirmPassword, {
-    message: "Passwords don't match.",
+    message: 'As senhas não conferem.',
     path: ['confirmPassword'],
   })
 
+type SignUpFormProps = React.HTMLAttributes<HTMLFormElement> & {
+  inviteToken: string
+}
+
 export function SignUpForm({
   className,
+  inviteToken,
   ...props
-}: React.HTMLAttributes<HTMLFormElement>) {
+}: SignUpFormProps) {
   const [isLoading, setIsLoading] = useState(false)
+  const [done, setDone] = useState(false)
+  const navigate = useNavigate()
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
+      name: '',
       email: '',
       password: '',
       confirmPassword: '',
     },
   })
 
-  function onSubmit(data: z.infer<typeof formSchema>) {
+  async function onSubmit(data: z.infer<typeof formSchema>) {
     setIsLoading(true)
+    try {
+      await api.post('/auth/register', {
+        name: data.name,
+        email: data.email,
+        password: data.password,
+        inviteToken,
+      })
+      setDone(true)
+    } catch (error) {
+      toast.error(errorMessageOf(error) ?? 'Não foi possível criar a conta.')
+    } finally {
+      setIsLoading(false)
+    }
+  }
 
-    toast.promise(sleep(2000), {
-      loading: 'Creating account...',
-      success: () => {
-        setIsLoading(false)
-        return `Account created for ${data.email}.`
-      },
-      error: 'Error',
-    })
+  // A conta nasce pendente: avisar aqui evita a pessoa tentar entrar e
+  // achar que a senha está errada.
+  if (done) {
+    return (
+      <div className='space-y-4'>
+        <div className='rounded-lg border border-emerald-500/40 bg-emerald-500/10 p-4 text-sm'>
+          <p className='font-medium'>Conta criada!</p>
+          <p className='text-muted-foreground mt-1'>
+            Falta um administrador aprovar seu acesso. Assim que isso acontecer,
+            você já consegue entrar com seu e-mail e senha.
+          </p>
+        </div>
+        <Button
+          className='w-full'
+          variant='outline'
+          onClick={() => void navigate({ to: '/sign-in' })}
+        >
+          Ir para o login
+        </Button>
+      </div>
+    )
   }
 
   return (
@@ -72,12 +108,25 @@ export function SignUpForm({
       >
         <FormField
           control={form.control}
+          name='name'
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Nome</FormLabel>
+              <FormControl>
+                <Input placeholder='Como quer ser chamado' {...field} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        <FormField
+          control={form.control}
           name='email'
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Email</FormLabel>
+              <FormLabel>E-mail</FormLabel>
               <FormControl>
-                <Input placeholder='name@example.com' {...field} />
+                <Input placeholder='voce@exemplo.com' {...field} />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -88,7 +137,7 @@ export function SignUpForm({
           name='password'
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Password</FormLabel>
+              <FormLabel>Senha</FormLabel>
               <FormControl>
                 <PasswordInput placeholder='********' {...field} />
               </FormControl>
@@ -101,7 +150,7 @@ export function SignUpForm({
           name='confirmPassword'
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Confirm Password</FormLabel>
+              <FormLabel>Confirme a senha</FormLabel>
               <FormControl>
                 <PasswordInput placeholder='********' {...field} />
               </FormControl>
@@ -111,38 +160,8 @@ export function SignUpForm({
         />
         <Button className='mt-2' disabled={isLoading}>
           {isLoading ? <Loader2 className='animate-spin' /> : <UserPlus />}
-          Create Account
+          Criar conta
         </Button>
-
-        <div className='relative my-2'>
-          <div className='absolute inset-0 flex items-center'>
-            <span className='w-full border-t' />
-          </div>
-          <div className='relative flex justify-center text-xs uppercase'>
-            <span className='bg-background px-2 text-muted-foreground'>
-              Or continue with
-            </span>
-          </div>
-        </div>
-
-        <div className='grid grid-cols-2 gap-2'>
-          <Button
-            variant='outline'
-            className='w-full'
-            type='button'
-            disabled={isLoading}
-          >
-            <IconGithub className='h-4 w-4' /> GitHub
-          </Button>
-          <Button
-            variant='outline'
-            className='w-full'
-            type='button'
-            disabled={isLoading}
-          >
-            <IconFacebook className='h-4 w-4' /> Facebook
-          </Button>
-        </div>
       </form>
     </Form>
   )
